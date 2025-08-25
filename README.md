@@ -9,6 +9,7 @@ git clone https://github.com/your-username/your-repo-name.git
 cd your-repo-name
 ```
 ## 2 Open the folder in VS Code:
+
 Open VS Code → File → Open Folder → select your-repo-name.
 All your code and the requirements.txt will already be inside.
   
