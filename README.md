@@ -5,8 +5,8 @@ Program that generates revenant summaries of PMC articles based on the user quer
 
 ## 1. Clone the Repository
 ```
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+git clone https://github.com/R4ju-M/ResearchPaperSummaryBot.git
+cd ResearchPaperSummaryBot
 ```
 ## 2. Open the folder in VS Code:
 Open VS Code → File → Open Folder → select your-repo-name.  
