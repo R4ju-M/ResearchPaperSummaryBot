@@ -22,13 +22,15 @@ referenceSynonyms = ["reference", "references", "citations", "abbreviations"]
 def extract_keywords(user_input, max_attempts = 3):
     attempt = 0
     #Prompt defining the OpenAI bots role in extracting keywords from the user query
-    final_prompt = f""""You are a PubMed search assistant. Your job is to extract keywords from the user's research interest
-        and format them into a PubMed-compatible search query. Use Boolean operators (AND, OR) appropriately.
-        Only return the search query string. Do not include explanations or extra text. Use OR operator to include very specific synonyms such as acryonyms
-        and similar things. Do not use broad phrases as synonyms like gene editing unless specifically mentioned.
-        You are on attempt {attempt}. If you're on attempt = 0, be ultraspecific to the keywords mentioned, but still use tightly related synonyms/acronyms to improve search results. As it increases,
-        get very slightly more specific to return somewhat relevant articles, IF NEED BE. 
-        """
+    final_prompt = f"""
+    You are a PubMed/PMC search assistant. Your job is to extract keywords from the user's research interest
+    and format them into a PMC-compatible search query. Use Boolean operators (AND, OR) appropriately.
+    Attach [article] to every keyword or phrase so that the search occurs in the full text of the article,
+    but exclude references. Do not attach [article] to Boolean operators (AND, OR, NOT) or parentheses.
+    Only return the final search query string. Do not include explanations or extra text. Please use OR boolean for synonyms, acronyms, and full-form versions
+    of scientific terms to give accurate results. And wrap with parenthesis to ensure logic is maintained in the boolean string.
+    You are on attempt {attempt}, and you have 3 tries max. So at 2 or 3 try relaxing synonyms a little.
+    """
     
     #giving it 3 tries to give accurate keywords, so while attemps less than 3, loop will run
     while attempt < max_attempts: 
@@ -70,7 +72,7 @@ def extract_keywords(user_input, max_attempts = 3):
     return None
 
 #method formats the idList provided in XML format into a loopable array
-def getIdList(keywords, max_results = 3):
+def getIdList(keywords, max_results = 5):
     handle = Entrez.esearch(db = "pmc", term = keywords, retmax = max_results)
     records = Entrez.read(handle)
     handle.close()
@@ -100,7 +102,6 @@ def getArticleTextBody(pubMedId):
     comments = soup.find_all(string=iscomment)
     for comment in comments:
         if "does not allow downloading of the full text" in comment.lower():
-            print("Article does not allow text mining, but here is the PMC ID: " + pubMedId)
             return None
     
     articleSectionsList = []
@@ -140,12 +141,10 @@ def getArticleTextBody(pubMedId):
     fullTextBody += "".join(articleSectionsList)
 
     #This code can be commented out if you want
-    #Just a way to see the entirety of the text of the article in a text file called "storage"
-    with open("storage.txt", "w") as file:
-        file.write("")
+    #Just a way to see the entirety of the text of the article in a text file called "storage.txt"
     with open("storage.txt", "a") as file:
         file.write(fullTextBody)
-        file.write("\n\n\n___________________________________")
+        file.write("\n\n\n___________________________________\n")
     
     return fullTextBody
 
@@ -153,9 +152,9 @@ def getSummaryOfArticle(articleTextBody, userInput):
     #defining role of API tool to create summaries of the research article we provide it
     systemPrompt = f"""
     You are an expert biomedical research assistant. You will be given a user query and the full text of a biomedical research article.  
-    Read the article carefully and summarize only information directly relevant to the query.  
-    Ignore unrelated sections and do not invent information. If the article does not mention the query, state it contains no relevant information.  
-    Keep the summary concise and focused in a single paragraph. 
+    Read the article carefully and summarize any information about the keywords, even if it is not directly in the context specified by the user.  
+    If the keyword is mentioned in the article, summarize how it is used, ignoring unrelated sections.  
+    Keep the summary concise and focused in a single paragraph.
     """.strip()
 
 
@@ -185,37 +184,52 @@ def getSummaryOfArticle(articleTextBody, userInput):
     return completion.choices[0].message.content.strip()
 
 def getArticleTitle(pubMedId):
-    raw_records = Entrez.efetch(db="pmc", id = pubMedId, rettype = "medline", retmode = "text")
-    read_records = raw_records.read()
+    raw_records = Entrez.efetch(db="pmc", id = pubMedId, rettype = "xml")
+    xml_data = raw_records.read()
     raw_records.close()
 
-    for line in read_records.split("\n"):
-        #extracting title out of the list of information in entry
-        if line.startswith("TI  - "):
-            title = line.replace("TI  - ", "").strip()
-            return title
-        
-    return "No Title Found"
+    soup = BeautifulSoup(xml_data, "xml")
+    title_tag = soup.find("article-title")
+    title = ""
+    if title_tag:
+        title = title_tag.getText(strip=True)
+    else:
+        title = "No Title Found"
+    
+    with open("storage.txt", "a") as file:
+        file.write("\nTitle: " + title + "\n")
+    return title
 
 #Enter query: E.g. Please give me summaries of articles that touch on the use of AAV particles to deliver CRISPR-Cas13 systems
-userInput = input("Please enter your research query: ")
+userInput = input("Please enter your research query: ") 
 
 #Clears output.txt every time program is run
 with open("output.txt", "w") as file:
+    file.write("")
+with open("storage.txt", "w") as file:
     file.write("")
 
 keywords = extract_keywords(userInput)
 idList = getIdList(keywords)
 
-#Iterates through each ID, providing the title and the corresponding, relevant summary of the article
+#Iterates through each ID, providing the title and the corresponding, relevant summary of the article. Gives 3 summaries
+summariesCount = 0
 for id in idList:
     articleTitle = getArticleTitle(id)
     articleTextBody = getArticleTextBody(id)
+
+    if not articleTextBody:
+        continue #skip articles that ban text-mining
+
     summaryOfArticle = getSummaryOfArticle(articleTextBody, userInput)
     with open("output.txt", "a") as file:
         file.write("Title: " + articleTitle + "\n\n")
         file.write(summaryOfArticle)
         file.write("\n________________________________________________________\n")
+    
+    summariesCount += 1
+    if summariesCount >= 3:
+        break
 
 
 
