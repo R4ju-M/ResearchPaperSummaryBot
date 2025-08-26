@@ -9,7 +9,7 @@ git clone https://github.com/R4ju-M/ResearchPaperSummaryBot.git
 cd ResearchPaperSummaryBot
 ```
 ## 2. Open the folder in VS Code:
-Open VS Code → File → Open Folder → select your-repo-name.  
+Open VS Code → File → Open Folder → select ResearchPaperSummaryBot.  
 All your code and the requirements.txt will already be inside.  
   
 ## 3. Create a virtual environment
