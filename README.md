@@ -14,7 +14,7 @@ All your code and the requirements.txt will already be inside.
   
 ## 3. Create a virtual environment
 ```
-python -m venv venv        -- try typing python3 instead of pythin if facing issue
+python -m venv venv        -- try typing python3 instead of python, if facing issue
 source venv/bin/activate   -- On macOS/Linux
 venv\Scripts\activate      -- On Windows
 ```
