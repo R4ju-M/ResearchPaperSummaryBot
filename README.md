@@ -24,3 +24,9 @@ venv\Scripts\activate      -- On Windows
 pip install -r requirements.txt
 ```
 
+## 5. Create OpenAPI Key
+Create a .env file in your folder location
+Inside this file, type this exact line. Replace your_key with your OpenAPI variable key
+```
+OPEN_API_KEY = your_key
+```
