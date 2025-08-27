@@ -4,6 +4,7 @@ Program that generates revenant summaries of PMC articles based on the user quer
 # Installation
 
 ## 1. Clone the Repository
+To do this, git must be installed on your system beforehand.
 ```
 git clone https://github.com/R4ju-M/ResearchPaperSummaryBot.git
 cd ResearchPaperSummaryBot
